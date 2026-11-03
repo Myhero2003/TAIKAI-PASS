@@ -47,7 +47,7 @@ export const SERIES: Array<{ id: string; name: string; tournamentSlugs: string[]
 export const BLOCKED_USER_SLUGS: string[] = [];
 
 /** プライバシーポリシーに載せる問い合わせ先(公開前に設定する) */
-export const CONTACT = '@mahiro_05_02';
+export const CONTACT = 'X: @mahiro_05_02';
 
 /** LP のショーケースに使うプレイヤー(start.gg の user slug)と表示枚数 */
 export const LP_FEATURED_SLUG = '830dec1e';
