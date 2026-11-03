@@ -113,6 +113,34 @@ export type EventResult = {
   subEvents: SubEventResult[];
 };
 
+/** その大会で対戦した相手(start.gg アカウントに紐付いている人のみ)。おすすめの元データ */
+export type Opponent = {
+  slug: string;
+  gamerTag: string;
+  prefix: string | null;
+  avatarUrl: string | null;
+  /** その大会で対戦したセット数(DQ は数えない) */
+  sets: number;
+};
+
+/** 最近の大きな大会の上位入賞者(「さがす」の棚に出す) */
+export type TopPlayer = {
+  slug: string;
+  gamerTag: string;
+  prefix: string | null;
+  avatarUrl: string | null;
+  placement: number;
+  tournamentName: string;
+  numEntrants: number;
+};
+
+export type GameShelf = {
+  id: string;
+  name: string;
+  iconUrl: string | null;
+  players: TopPlayer[];
+};
+
 /** 1大会 × 1プレイヤー = 1枚 */
 export type PassCard = {
   id: string;
@@ -138,6 +166,7 @@ export type PassCard = {
   isMultiTitle: boolean;
   /** 裏面タブ。タイトル単位 */
   results: EventResult[];
+  opponents: Opponent[];
 };
 
 export type PlayerProfile = {
@@ -150,12 +179,27 @@ export type PlayerProfile = {
   homeRegion: JpRegion | null;
 };
 
+/** start.gg のログインで本人確認できたユーザー */
+export type SessionUser = {
+  userId: string;
+  slug: string;
+  gamerTag: string;
+};
+
+export type SessionState = {
+  /** ログイン用の環境変数が設定されているか */
+  configured: boolean;
+  user: SessionUser | null;
+};
+
 export type TournamentStub = {
   id: string;
   slug: string;
   name: string;
   startAt: string;
   endAt: string;
+  /** 大会ロゴ。LOGO_MODE で許可されていなければ null */
+  iconUrl: string | null;
 };
 
 /** /api/players/[slug] のレスポンス。カード本体は大会ごとに別リクエストで取る */

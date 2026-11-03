@@ -91,6 +91,7 @@ function mk(o: {
     themeHue: theme.hue,
     isMultiTitle: results.length >= 2,
     results,
+    opponents: [],
   };
 }
 

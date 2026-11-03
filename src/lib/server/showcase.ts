@@ -43,7 +43,11 @@ async function load(slug: string): Promise<Showcase> {
   const oldest = tournaments.at(-1)?.startAt;
   return {
     player,
-    cards: cards.filter((c): c is PassCard => c !== null).slice(0, LP_CARD_COUNT),
+    // おすすめ用の対戦相手は LP では使わないので、公開ページの HTML に載せない
+    cards: cards
+      .filter((c): c is PassCard => c !== null)
+      .slice(0, LP_CARD_COUNT)
+      .map((c) => ({ ...c, opponents: [] })),
     total: tournaments.length,
     lastYear: tournaments.filter((t) => t.startAt >= yearAgo).length,
     sinceYear: oldest ? new Date(oldest).getFullYear() : null,
@@ -52,7 +56,7 @@ async function load(slug: string): Promise<Showcase> {
 }
 
 // 失敗時は例外を投げてキャッシュさせない(デモデータが1日残らないように)
-const cachedLoad = unstable_cache(load, ['lp-showcase-v1'], { revalidate: 86400 });
+const cachedLoad = unstable_cache(load, ['lp-showcase-v3'], { revalidate: 86400 });
 
 export async function getShowcase(slug: string): Promise<Showcase> {
   try {

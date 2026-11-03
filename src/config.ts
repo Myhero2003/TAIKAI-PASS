@@ -20,6 +20,15 @@ export const SIDE_EVENT_PATTERN =
  */
 export const LOGO_ALLOWLIST: string[] = [];
 
+/**
+ * 実際には開催されていない大会など、カードにしない大会の slug。
+ * 累計の出場数や遠征の集計、タイムラインにも含めない
+ */
+export const EXCLUDED_TOURNAMENT_SLUGS: string[] = [
+  // 篝火#258: エイプリルフールのネタ大会(公式が告知済み)。開催日も 1935-04-01 になっている
+  'tournament/258-kagaribi-258',
+];
+
 /** テーマカラーを手動で固定したい大会。slug → #rrggbb */
 export const THEME_OVERRIDES: Record<string, string> = {};
 
@@ -43,6 +52,18 @@ export const CONTACT = '@mahiro_05_02';
 /** LP のショーケースに使うプレイヤー(start.gg の user slug)と表示枚数 */
 export const LP_FEATURED_SLUG = '830dec1e';
 export const LP_CARD_COUNT = 12;
+
+/**
+ * 「さがす」に棚を出すゲーム(start.gg の videogame ID)。この順に並ぶ。
+ * 最近の国内大会に入賞者がいないゲームの棚は自動で出なくなる
+ */
+export const FEATURED_GAMES: Array<{ id: string; name: string }> = [
+  { id: '1386', name: 'スマブラSP' },
+  { id: '43868', name: 'ストリートファイター6' },
+  { id: '49783', name: '鉄拳8' },
+  { id: '33945', name: 'GUILTY GEAR -STRIVE-' },
+  { id: '48548', name: 'グランブルーファンタジー ヴァーサス ライジング' },
+];
 
 /** ゲームタイトル既定色(ロゴから色が取れないときに使う) */
 export const VIDEOGAME_COLORS: Array<{ pattern: RegExp; color: string }> = [

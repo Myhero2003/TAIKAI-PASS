@@ -1,6 +1,58 @@
 // start.gg GraphQL クエリ。
 // 使っているフィールドが実在するかは `npm run check-schema` で確認できる。
 
+/** ログインしたユーザー本人の確認(OAuth トークンで呼ぶ) */
+export const CURRENT_USER = /* GraphQL */ `
+  query CurrentUser {
+    currentUser {
+      id
+      slug
+      player { gamerTag }
+    }
+  }
+`;
+
+/** 「さがす」の棚: そのゲームの最近の国内大会(参加人数はこの中で比べる) */
+export const TOP_TOURNAMENTS = /* GraphQL */ `
+  query TopTournaments($videogameId: ID!, $perPage: Int!, $afterDate: Timestamp) {
+    videogame(id: $videogameId) { images { url type } }
+    tournaments(query: {
+      page: 1
+      perPage: $perPage
+      sortBy: "startAt desc"
+      filter: { past: true, countryCode: "JP", videogameIds: [$videogameId], afterDate: $afterDate }
+    }) {
+      nodes { id name slug startAt numAttendees }
+    }
+  }
+`;
+
+/** 「さがす」の棚: 大会のそのゲームのイベントの上位8人 */
+export const TOURNAMENT_TOP_STANDINGS = /* GraphQL */ `
+  query TournamentTopStandings($id: ID!, $videogameId: ID!) {
+    tournament(id: $id) {
+      events(filter: { videogameId: [$videogameId] }) {
+        name
+        numEntrants
+        state
+        teamRosterSize { maxPlayers }
+        standings(query: { page: 1, perPage: 8 }) {
+          nodes {
+            placement
+            entrant {
+              participants {
+                gamerTag
+                prefix
+                user { slug images { url type } }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
 /** Step 1: プレイヤー情報と参加大会の一覧(軽量) */
 export const PLAYER_INDEX = /* GraphQL */ `
   query PlayerIndex($slug: String!, $page: Int!, $perPage: Int!) {
@@ -12,7 +64,7 @@ export const PLAYER_INDEX = /* GraphQL */ `
       player { id gamerTag prefix }
       tournaments(query: { page: $page, perPage: $perPage, filter: { past: true } }) {
         pageInfo { total totalPages }
-        nodes { id slug name startAt endAt }
+        nodes { id slug name startAt endAt images { url type } }
       }
     }
   }
@@ -65,7 +117,14 @@ export const ENTRANT_SETS = /* GraphQL */ `
           winnerId
           displayScore
           slots {
-            entrant { id }
+            entrant {
+              id
+              participants {
+                gamerTag
+                prefix
+                user { slug images { url type } }
+              }
+            }
             standing { stats { score { value } } }
           }
           games {

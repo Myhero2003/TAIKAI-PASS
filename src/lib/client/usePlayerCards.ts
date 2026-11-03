@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import type { PassCard, PlayerIndex, PlayerProfile } from '@/lib/model/types';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { PassCard, PlayerIndex, PlayerProfile, TournamentStub } from '@/lib/model/types';
 import { storage } from './storage';
 
 export type PlayerCardsState = {
@@ -16,6 +16,8 @@ export type PlayerCardsState = {
 };
 
 const CONCURRENCY = 3;
+/** カードの形が変わったら上げる。CDN に残った古い形式のレスポンスを使わないようにするため */
+const CARD_SCHEMA = 2;
 
 async function getJson<T>(url: string, signal: AbortSignal): Promise<T> {
   for (let attempt = 0; ; attempt++) {
@@ -32,8 +34,16 @@ async function getJson<T>(url: string, signal: AbortSignal): Promise<T> {
 }
 
 /** プレイヤーの参加大会一覧を取り、カードを大会ごとに順次取得する */
-export function usePlayerCards(slug: string | null): PlayerCardsState {
+export function usePlayerCards(slug: string | null) {
   const [state, setState] = useState<PlayerCardsState>(initial);
+  const queueRef = useRef<TournamentStub[]>([]);
+  const orderRef = useRef<LoadOrder>('newest');
+
+  /** まだ読み込んでいない大会の順番を変える(古い順で見たいときに、一番古い大会を待たせないため) */
+  const setLoadOrder = useCallback((order: LoadOrder) => {
+    orderRef.current = order;
+    sortQueue(queueRef.current, order);
+  }, []);
 
   useEffect(() => {
     if (!slug) return;
@@ -53,6 +63,8 @@ export function usePlayerCards(slug: string | null): PlayerCardsState {
       setState((s) => ({ ...s, player, total: tournaments.length, status: tournaments.length ? 'loading' : 'ready' }));
 
       const queue = [...tournaments];
+      sortQueue(queue, orderRef.current);
+      queueRef.current = queue;
       const worker = async () => {
         for (let t = queue.shift(); t; t = queue.shift()) {
           if (ctrl.signal.aborted) return;
@@ -61,7 +73,7 @@ export function usePlayerCards(slug: string | null): PlayerCardsState {
           if (card === undefined) {
             try {
               const res = await getJson<{ card: PassCard | null; settled: boolean }>(
-                `/api/cards/${t.id}?userId=${player.userId}&name=${encodeURIComponent(player.gamerTag)}`,
+                `/api/cards/${t.id}?userId=${player.userId}&name=${encodeURIComponent(player.gamerTag)}&v=${CARD_SCHEMA}`,
                 ctrl.signal,
               );
               card = res.card;
@@ -91,7 +103,13 @@ export function usePlayerCards(slug: string | null): PlayerCardsState {
     return () => ctrl.abort();
   }, [slug]);
 
-  return state;
+  return { ...state, setLoadOrder };
+}
+
+export type LoadOrder = 'newest' | 'oldest';
+
+function sortQueue(queue: TournamentStub[], order: LoadOrder) {
+  queue.sort((a, b) => (order === 'oldest' ? a.startAt.localeCompare(b.startAt) : b.startAt.localeCompare(a.startAt)));
 }
 
 function initial(): PlayerCardsState {

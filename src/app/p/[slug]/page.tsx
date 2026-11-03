@@ -1,14 +1,14 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { use } from 'react';
 import { PlayerBinder } from '@/components/PlayerBinder';
-import { storage } from '@/lib/client/storage';
+import { useSession } from '@/lib/client/useSession';
 
-/** 他プレイヤーのバインダー(閲覧のみ)。自分の slug なら自分のバインダーとして表示 */
+/** 他プレイヤーのバインダー(閲覧のみ)。ログイン中の本人のページなら自分のバインダーとして表示 */
 export default function PlayerPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
-  const [me, setMe] = useState<string | null | undefined>(undefined);
-  useEffect(() => setMe(storage.getMe()), []);
-  if (me === undefined) return null;
-  return <PlayerBinder slug={slug.toLowerCase()} isOwner={me === slug.toLowerCase()} />;
+  const { session } = useSession();
+  if (!session) return null;
+  const normalized = slug.toLowerCase();
+  return <PlayerBinder slug={normalized} isOwner={session.user?.slug === normalized} />;
 }

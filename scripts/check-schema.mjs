@@ -22,7 +22,7 @@ async function gql(query, variables = {}) {
 
 // 型名 → このアプリが参照するフィールド
 const EXPECTED = {
-  Query: ['user', 'tournament', 'entrant'],
+  Query: ['user', 'tournament', 'entrant', 'currentUser'],
   User: ['id', 'slug', 'images', 'location', 'player', 'tournaments'],
   Address: ['country', 'state'],
   Player: ['id', 'gamerTag', 'prefix'],

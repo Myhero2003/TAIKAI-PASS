@@ -49,8 +49,13 @@ type GqlResponse<T> = {
   message?: string;
 };
 
-export async function gql<T>(query: string, variables: Record<string, unknown>): Promise<T> {
-  const token = process.env.STARTGG_TOKEN;
+export async function gql<T>(
+  query: string,
+  variables: Record<string, unknown>,
+  /** token を渡すとそのトークンで呼ぶ(ログインユーザー本人の OAuth トークン用) */
+  options: { token?: string } = {},
+): Promise<T> {
+  const token = options.token ?? process.env.STARTGG_TOKEN;
   if (!token) throw new StartggError('STARTGG_TOKEN が設定されていません(.env.local)', 500);
 
   let lastError = '';

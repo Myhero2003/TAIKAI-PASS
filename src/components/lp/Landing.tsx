@@ -116,8 +116,8 @@ export function Landing({ showcase }: { showcase: Showcase }) {
           </p>
           <ol className="lp-steps">
             <li>
-              <b>start.gg のプロフィール URL を入れる</b>
-              <span>登録やログインは不要。</span>
+              <b>start.gg でログインする</b>
+              <span>本人のアカウントだけが、マイバインダーになる。</span>
             </li>
             <li>
               <b>過去の大会が1枚ずつパスになる</b>

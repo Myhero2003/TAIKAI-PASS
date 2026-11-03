@@ -1,5 +1,5 @@
 import 'server-only';
-import { BLOCKED_USER_SLUGS, LOGO_ALLOWLIST } from '@/config';
+import { BLOCKED_USER_SLUGS, EXCLUDED_TOURNAMENT_SLUGS, LOGO_ALLOWLIST } from '@/config';
 import type { PassCard, PlayerIndex, TournamentStub } from '@/lib/model/types';
 import { gql, StartggError } from '@/lib/startgg/client';
 import { ENTRANT_SETS, PLAYER_INDEX, TOURNAMENT_FOR_USER } from '@/lib/startgg/queries';
@@ -32,7 +32,7 @@ export async function fetchPlayerIndex(slug: string): Promise<PlayerIndex> {
     first ??= user;
     totalPages = Math.min(user.tournaments?.pageInfo?.totalPages ?? 1, INDEX_MAX_PAGES);
     for (const node of user.tournaments?.nodes ?? []) {
-      if (!node) continue;
+      if (!node || EXCLUDED_TOURNAMENT_SLUGS.includes(node.slug ?? '')) continue;
       const id = String(node.id);
       tournaments.set(id, {
         id,
@@ -40,6 +40,7 @@ export async function fetchPlayerIndex(slug: string): Promise<PlayerIndex> {
         name: node.name ?? '',
         startAt: unixToIso(node.startAt),
         endAt: unixToIso(node.endAt ?? node.startAt),
+        iconUrl: logoAllowed(node.slug) ? pickImage(node.images, 'profile') : null,
       });
     }
     page++;
@@ -91,6 +92,7 @@ export async function fetchCard(tournamentId: string, userId: string, fallbackNa
   const data = await gql<RawTournamentForUser>(TOURNAMENT_FOR_USER, { id: tournamentId, userId });
   const t = data.tournament;
   if (!t) throw new StartggError('大会が見つかりません', 404);
+  if (EXCLUDED_TOURNAMENT_SLUGS.includes(t.slug ?? '')) return { card: null, settled: true };
 
   const groups = groupByGame(toEntries(t));
   if (groups.length === 0) return { card: null, settled: true };
@@ -111,6 +113,7 @@ export async function fetchCard(tournamentId: string, userId: string, fallbackNa
     theme,
     useLogo: logoAllowed(t.slug),
   });
+  if (card) card.opponents = card.opponents.filter((o) => !BLOCKED_USER_SLUGS.includes(o.slug));
   const ended = (t.endAt ?? 0) * 1000 < Date.now() - 2 * 24 * 3600 * 1000;
   return { card, settled: ended && groups.every((g) => g.all.every((e) => e.final)) };
 }

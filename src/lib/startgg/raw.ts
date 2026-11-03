@@ -5,6 +5,10 @@ export type RawId = string | number;
 
 export type RawImage = { url: string | null; type: string | null };
 
+export type RawCurrentUser = {
+  currentUser: { id: RawId; slug: string | null; player: { gamerTag: string | null } | null } | null;
+};
+
 export type RawPlayerIndexPage = {
   user: {
     id: RawId;
@@ -20,10 +24,45 @@ export type RawPlayerIndexPage = {
         name: string | null;
         startAt: number | null;
         endAt: number | null;
+        images: RawImage[] | null;
       } | null> | null;
     } | null;
   } | null;
 };
+
+export type RawTopTournaments = {
+  videogame: { images: Array<{ url: string | null; type: string | null }> | null } | null;
+  tournaments: {
+    nodes: Array<{
+      id: RawId;
+      name: string | null;
+      slug: string | null;
+      startAt: number | null;
+      numAttendees: number | null;
+    } | null> | null;
+  } | null;
+};
+
+export type RawTopEvent = {
+  name: string | null;
+  numEntrants: number | null;
+  state: string | null;
+  teamRosterSize: { maxPlayers: number | null } | null;
+  standings: {
+    nodes: Array<{
+      placement: number | null;
+      entrant: {
+        participants: Array<{
+          gamerTag: string | null;
+          prefix: string | null;
+          user: { slug: string | null; images: RawImage[] | null } | null;
+        } | null> | null;
+      } | null;
+    } | null> | null;
+  } | null;
+};
+
+export type RawTopStandings = { tournament: { events: RawTopEvent[] | null } | null };
 
 export type RawVideogame = {
   id: RawId;
@@ -71,7 +110,14 @@ export type RawSet = {
   winnerId: RawId | null;
   displayScore: string | null;
   slots: Array<{
-    entrant: { id: RawId } | null;
+    entrant: {
+      id: RawId;
+      participants?: Array<{
+        gamerTag: string | null;
+        prefix: string | null;
+        user: { slug: string | null; images: RawImage[] | null } | null;
+      } | null> | null;
+    } | null;
     standing: { stats: { score: { value: number | null } | null } | null } | null;
   } | null> | null;
   games: Array<{

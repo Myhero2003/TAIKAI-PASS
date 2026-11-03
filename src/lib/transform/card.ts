@@ -1,8 +1,8 @@
-import type { EventFormat, EventResult, GameRef, Location, PassCard, Theme } from '@/lib/model/types';
+import type { EventFormat, EventResult, GameRef, Location, Opponent, PassCard, Theme } from '@/lib/model/types';
 import type { RawImage, RawSet, RawTournament, RawVideogame } from '@/lib/startgg/raw';
 import { classifyFormat, countsForGameFilter, pickPrimary } from './format';
 import { normalizeCountry, resolveJpLocation } from './region';
-import { summarizeSets } from './sets';
+import { collectOpponents, summarizeSets } from './sets';
 
 export function pickImage(images: RawImage[] | null | undefined, preferType: string): string | null {
   const list = (images ?? []).filter((i): i is { url: string; type: string | null } => !!i?.url);
@@ -115,6 +115,14 @@ export function buildCard(input: BuildCardInput): PassCard | null {
     .filter((g) => g.all.some((e) => countsForGameFilter(e.format)))
     .map((g) => g.primary.game.id);
 
+  // 複数タイトルで同じ相手と当たった場合は合算する
+  const opponents = new Map<string, Opponent>();
+  for (const { primary } of groups) {
+    for (const o of collectOpponents(input.setsByEntrant.get(primary.entrantId) ?? [], primary.entrantId)) {
+      opponents.set(o.slug, { ...o, sets: o.sets + (opponents.get(o.slug)?.sets ?? 0) });
+    }
+  }
+
   let bestPlacement: number | null = null;
   let bestPercentile: number | null = null;
   for (const r of results) {
@@ -155,5 +163,6 @@ export function buildCard(input: BuildCardInput): PassCard | null {
     themeHue: input.theme.hue,
     isMultiTitle: results.length >= 2,
     results,
+    opponents: [...opponents.values()],
   };
 }

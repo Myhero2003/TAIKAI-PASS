@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { storage } from '@/lib/client/storage';
 
-/** この端末に保存した TAIKAI PASS のデータ(マイバインダー設定・フォロー・並び順・キャッシュ)を消す */
+/** この端末に保存した TAIKAI PASS のデータ(フォロー・並び順・キャッシュ)を消す */
 export function ClearDataButton() {
   const [step, setStep] = useState<'idle' | 'confirm' | 'done'>('idle');
 
@@ -11,7 +11,7 @@ export function ClearDataButton() {
   if (step === 'confirm') {
     return (
       <div className="clear-confirm">
-        <span>マイバインダーの設定・フォロー・並び順もすべて消えます。</span>
+        <span>フォロー・並び順もすべて消えます。</span>
         <button
           className="btn"
           onClick={() => {

@@ -3,7 +3,7 @@ import type { RawSet, RawTournament } from '@/lib/startgg/raw';
 import { buildCard } from './card';
 import { classifyFormat, pickPrimary } from './format';
 import { findPrefecture, nearestPrefecture, resolveJpLocation } from './region';
-import { summarizeSets } from './sets';
+import { collectOpponents, summarizeSets } from './sets';
 import { computeStats } from './stats';
 import { contrastRatio, dominantColor, makeTheme } from './theme';
 import { parseUserSlug } from '@/lib/slug';
@@ -116,6 +116,51 @@ describe('summarizeSets', () => {
 
   it('キャラ報告がなければ null(0% と区別)', () => {
     expect(summarizeSets([set(10)], '10').characters).toBeNull();
+  });
+});
+
+describe('collectOpponents', () => {
+  const slot = (id: number, slug: string | null, tag = 'TAG') => ({
+    entrant: {
+      id,
+      participants: [{ gamerTag: tag, prefix: null, user: slug ? { slug, images: [{ url: 'a.png', type: 'profile' }] } : null }],
+    },
+    standing: null,
+  });
+
+  it('自分以外の相手を、対戦数つきで返す', () => {
+    const opponents = collectOpponents(
+      [set(10, { slots: [slot(10, 'user/me'), slot(20, 'user/aaaa1111')] }), set(20, { slots: [slot(20, 'user/aaaa1111'), slot(10, 'user/me')] })],
+      '10',
+    );
+    expect(opponents).toEqual([{ slug: 'aaaa1111', gamerTag: 'TAG', prefix: null, avatarUrl: 'a.png', sets: 2 }]);
+  });
+
+  it('DQ・未決着・アカウントのない相手は数えない', () => {
+    const opponents = collectOpponents(
+      [
+        set(10, { displayScore: 'DQ', slots: [slot(10, 'user/me'), slot(20, 'user/dqdq1111')] }),
+        { ...set(0), winnerId: null, slots: [slot(10, 'user/me'), slot(30, 'user/open1111')] },
+        set(10, { slots: [slot(10, 'user/me'), slot(40, null)] }),
+      ],
+      '10',
+    );
+    expect(opponents).toEqual([]);
+  });
+
+  it('チーム戦は相手全員を数える', () => {
+    const team = {
+      entrant: {
+        id: 20,
+        participants: [
+          { gamerTag: 'A', prefix: null, user: { slug: 'user/aaaa1111', images: [] } },
+          { gamerTag: 'B', prefix: 'P', user: { slug: 'user/bbbb1111', images: [] } },
+        ],
+      },
+      standing: null,
+    };
+    const opponents = collectOpponents([set(10, { slots: [slot(10, 'user/me'), team] })], '10');
+    expect(opponents.map((o) => o.slug)).toEqual(['aaaa1111', 'bbbb1111']);
   });
 });
 

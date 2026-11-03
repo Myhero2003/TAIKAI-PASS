@@ -26,9 +26,11 @@ type Props = {
   isOwner: boolean;
   progress?: { done: number; total: number; failed: number; loading: boolean };
   actions?: ReactNode;
+  /** 読み込み途中なら、選んだ並びの先頭に来るカードから読み込むために使う */
+  onSortChange?: (sort: SortKey) => void;
 };
 
-export function Binder({ player, cards, isOwner, progress, actions }: Props) {
+export function Binder({ player, cards, isOwner, progress, actions, onSortChange }: Props) {
   const [sort, setSort] = useState<SortKey>('date_desc');
   const [filter, setFilter] = useState<Filter>(EMPTY_FILTER);
   const [manualOrder, setManualOrder] = useState<string[]>([]);
@@ -114,7 +116,11 @@ export function Binder({ player, cards, isOwner, progress, actions }: Props) {
       <div className="b-tools b-fade">
         <label>
           <span className="sr-only">並び替え</span>
-          <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
+          <select value={sort} onChange={(e) => {
+              const next = e.target.value as SortKey;
+              setSort(next);
+              onSortChange?.(next);
+            }}>
             {sortKeys.map((k) => (
               <option key={k} value={k}>
                 {SORT_LABEL[k]}
@@ -175,7 +181,12 @@ export function Binder({ player, cards, isOwner, progress, actions }: Props) {
       )}
 
       {visible.length > 0 ? (
-        <CardStack cards={visible} onCenterChange={setCenterCard} onFocusChange={setFocusedCard} />
+        <CardStack
+          cards={visible}
+          resetKey={`${sort}|${filter.area}|${filter.game}`}
+          onCenterChange={setCenterCard}
+          onFocusChange={setFocusedCard}
+        />
       ) : (
         <div className="b-empty">
           {progress?.loading ? 'カードを発行しています…' : cards.length ? '条件に合うカードがありません' : 'まだカードがありません'}

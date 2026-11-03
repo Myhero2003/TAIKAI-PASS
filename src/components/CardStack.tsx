@@ -48,6 +48,8 @@ function rubber(v: number, lo: number, hi: number) {
 
 type Props = {
   cards: PassCard[];
+  /** 値が変わったら先頭のカードに戻す(並び替え・絞り込みを変えたとき) */
+  resetKey?: string;
   onCenterChange?: (card: PassCard | null) => void;
   onFocusChange?: (card: PassCard | null) => void;
 };
@@ -60,7 +62,7 @@ type Props = {
  *
  * 毎フレームの更新は React を通さず、ref 経由で transform / opacity だけを書き換える。
  */
-export function CardStack({ cards, onCenterChange, onFocusChange }: Props) {
+export function CardStack({ cards, resetKey, onCenterChange, onFocusChange }: Props) {
   const stageRef = useRef<HTMLDivElement>(null);
   const els = useRef(new Map<number, HTMLDivElement>());
   const flips = useRef(new Map<number, HTMLDivElement>());
@@ -78,6 +80,7 @@ export function CardStack({ cards, onCenterChange, onFocusChange }: Props) {
   const lastTime = useRef(0);
   const centerRef = useRef(0);
   const metrics = useRef({ cw: 200, focusScale: 1.4 });
+  const lastResetKey = useRef(resetKey);
   const cardsRef = useRef(cards);
   const callbacks = useRef({ onCenterChange, onFocusChange });
   callbacks.current = { onCenterChange, onFocusChange };
@@ -391,18 +394,28 @@ export function CardStack({ cards, onCenterChange, onFocusChange }: Props) {
     return () => ro.disconnect();
   }, []);
 
-  // 並び替え・絞り込み・読み込みでカードが入れ替わっても、見ていたカードを中央に保つ
+  // 並び替え・絞り込みを変えたら先頭へ。読み込みでカードが増えたときは、見ていたカードを中央に保つ
   useLayoutEffect(() => {
     const prev = cardsRef.current;
     if (prev === cards) return;
     cardsRef.current = cards;
     const n = cards.length;
 
-    const centerId = prev[centerRef.current]?.id;
-    const newCenter = centerId ? cards.findIndex((c) => c.id === centerId) : -1;
-    const shift = newCenter >= 0 ? newCenter - centerRef.current : 0;
-    pos.value = clamp(pos.value + shift, 0, Math.max(0, n - 1));
-    pos.target = clamp(Math.round(pos.target + shift), 0, Math.max(0, n - 1));
+    const reset = lastResetKey.current !== resetKey;
+    lastResetKey.current = resetKey;
+    // 先頭を見ているなら、前に新しいカードが届いても先頭に留まる(古い順で一番古い大会を見たいときなど)
+    const atStart =
+      !drag.current && focusedIdx.current === null && centerRef.current === 0 && Math.round(pos.target) === 0;
+
+    if (reset || atStart) {
+      pos.set(0);
+    } else {
+      const centerId = prev[centerRef.current]?.id;
+      const newCenter = centerId ? cards.findIndex((c) => c.id === centerId) : -1;
+      const shift = newCenter >= 0 ? newCenter - centerRef.current : 0;
+      pos.value = clamp(pos.value + shift, 0, Math.max(0, n - 1));
+      pos.target = clamp(Math.round(pos.target + shift), 0, Math.max(0, n - 1));
+    }
     centerRef.current = clamp(Math.round(pos.value), 0, Math.max(0, n - 1));
     setCenter(centerRef.current);
 
@@ -418,7 +431,7 @@ export function CardStack({ cards, onCenterChange, onFocusChange }: Props) {
       }
     }
     kick();
-  }, [cards]);
+  }, [cards, resetKey]);
 
   // 描画範囲が変わって新しく DOM に入ったカードにも、ペイント前に位置を当てる
   useLayoutEffect(() => {
